@@ -15,13 +15,14 @@ fn main() {
         .insert_resource(ClearColor(Color::rgb(0.9, 0.9, 0.9)))
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, setup)
-        .add_systems(Update, (move_sprites, bobbin))
+        .add_systems(Update, (sys_move, sys_bobbin))
         .run();
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let mut rng = rand::thread_rng();
     commands.spawn(Camera2dBundle::default());
+
     for _i in 0..1000 {
         commands.spawn((
             SpriteBundle {
@@ -45,7 +46,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     }
 }
 
-fn move_sprites(mut commands: Commands, time: Res<Time>, mut pos: Query<(Entity, &mut Transform, &mut Dir, &mut Sprite)>) {
+fn sys_move(mut commands: Commands, time: Res<Time>, mut pos: Query<(Entity, &mut Transform, &mut Dir, &mut Sprite)>) {
     for (ent, mut transform, mut dir, mut spr) in &mut pos {
         transform.translation.x += dir.x * time.delta_seconds();
         transform.translation.y += dir.y * time.delta_seconds();
@@ -63,7 +64,7 @@ fn move_sprites(mut commands: Commands, time: Res<Time>, mut pos: Query<(Entity,
     }
 }
 
-fn bobbin(time: Res<Time>, mut pos: Query<(&mut Transform, &Bob)>) {
+fn sys_bobbin(time: Res<Time>, mut pos: Query<(&mut Transform, &Bob)>) {
     for (mut transform, _bob) in &mut pos {
         transform.translation.y +=  (time.elapsed_seconds() * 30.0).sin() * 3.0;
     }
