@@ -1,4 +1,8 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    sprite::collide_aabb::{collide},
+};
+
 use rand::Rng;
 
 use crate::{ despawn_screen, GameState };
@@ -14,6 +18,7 @@ impl Plugin for GamePlugin {
                 move_bounce,
                 move_bob,
                 move_with_keys,
+                check_for_collisions
             ).run_if(in_state(GameState::InGame)))
             .add_systems(OnExit(GameState::InGame), despawn_screen::<OnGameScreen>);
     }
@@ -24,6 +29,9 @@ struct OnGameScreen;
 
 #[derive(Component)]
 struct Playa;
+
+#[derive(Component)]
+struct Peep;
 
 #[derive(Component)]
 struct Dir {
@@ -68,6 +76,7 @@ fn game_setup(
                 x: rng.gen::<f32>() * 400.0 - 200.0,
                 y: rng.gen::<f32>() * 400.0 - 200.0
             },
+            Peep,
             OnGameScreen
         ));
     }
@@ -123,5 +132,30 @@ fn move_with_keys(key_in: Res<Input<KeyCode>>,
     }
     if key_in.pressed(KeyCode::Down) {
         transform.translation.y -= speed * time.delta_seconds();
+    }
+}
+
+fn check_for_collisions(
+    mut commands: Commands,
+    mut playa_query: Query<&Transform, With<Playa>>,
+    peeps_query: Query<(Entity, &Transform), With<Peep>>
+) {
+    let playa = playa_query.single_mut();
+    let playa_size = playa.scale.truncate();
+
+    for (entity, transform) in &peeps_query {
+        let collision = collide(
+            playa.translation,
+            playa_size,
+            transform.translation,
+            transform.scale.truncate(),
+        );
+        if collision.is_some() {
+            info!("{}", transform.translation.x);
+        }
+        if let Some(_collision) = collision {
+            info!("Y");
+            commands.entity(entity).despawn();
+        }
     }
 }
