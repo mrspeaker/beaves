@@ -1,5 +1,21 @@
+mod systems;
+mod game;
+mod splash;
+
 use bevy::prelude::*;
 use rand::Rng;
+
+use splash::*;
+use game::*;
+//use systems::*;
+
+#[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash, States)]
+pub enum GameState {
+    #[default]
+    Splash,
+    MainMenu,
+    InGame,
+}
 
 #[derive(Component)]
 struct Dir {
@@ -13,12 +29,31 @@ struct Bob;
 #[derive(Component)]
 struct Playa;
 
+#[derive(Component)]
+struct MenuClose;
+
+#[derive(Component)]
+struct LevelUnload;
+
+#[derive(Component, Deref, DerefMut)]
+struct PrinterTick(Timer);
+
+#[derive(Component)]
+struct TextToPrint(String);
+
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.9, 0.9, 0.9)))
+        .add_state::<GameState>()
         .add_plugins(DefaultPlugins)
         .add_systems(Startup, setup)
-        .add_systems(Update, (sys_move, sys_bobbin, sys_keys))
+        .add_plugins((splash::SplashPlugin, game::GamePlugin))
+        .add_systems(Update, (
+            sys_print_text,
+            sys_move,
+            sys_bobbin,
+            sys_keys,
+        ))
         .run();
 }
 
@@ -45,7 +80,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     let mut rng = rand::thread_rng();
     commands.spawn(Camera2dBundle::default());
 
-    for _i in 0..10 {
+    for _i in 0..0 {
         commands.spawn((
             SpriteBundle {
                 texture: asset_server.load("char.png"),
@@ -82,6 +117,29 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             ..default()
         },
         Playa));
+
+    commands.spawn((
+        PrinterTick(Timer::from_seconds(1.0, TimerMode::Repeating)),
+        TextToPrint("Main Menu".to_string()),
+        MenuClose,
+    ));
+
+    commands.spawn((
+        PrinterTick(Timer::from_seconds(1.0, TimerMode::Repeating)),
+        TextToPrint("Level 1".to_string()),
+        LevelUnload,
+    ));
+    
+
+}
+
+
+fn sys_print_text(time: Res<Time>, mut query: Query<(&mut PrinterTick, &TextToPrint)>) {
+    for (mut timer, text) in &mut query {
+        if timer.tick(time.delta()).just_finished() {
+            info!("{}", text.0);
+        }
+    }
 }
 
 fn sys_move(mut commands: Commands, time: Res<Time>, mut pos: Query<(Entity, &mut Transform, &mut Dir, &mut Sprite)>) {
@@ -102,8 +160,15 @@ fn sys_move(mut commands: Commands, time: Res<Time>, mut pos: Query<(Entity, &mu
     }
 }
 
-fn sys_bobbin(time: Res<Time>, mut pos: Query<(&mut Transform, &Bob)>) {
+fn sys_bobbin(time: Res<Time>, mut pos: Query<(&mut Transform, With<Bob>)>) {
     for (mut transform, _bob) in &mut pos {
         transform.translation.y +=  (time.elapsed_seconds() * 30.0).sin() * 3.0;
+    }
+}
+
+// Generic system that takes a component as a parameter, and will despawn all entities with that component
+fn despawn_screen<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
+    for entity in &to_despawn {
+        commands.entity(entity).despawn_recursive();
     }
 }
