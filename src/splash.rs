@@ -26,10 +26,6 @@ fn splash_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
             texture: asset_server.load("monsta.png"),
             transform: Transform::from_xyz(0., 0., 0.)
                 .with_scale(Vec3::splat(0.5)),
-            sprite: Sprite {
-                flip_y: false,
-                ..default()
-            },
             ..default()
         },
         OnSplashScreen));

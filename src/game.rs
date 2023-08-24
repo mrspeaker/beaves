@@ -103,7 +103,7 @@ fn move_bounce(mut commands: Commands, time: Res<Time>, mut pos: Query<(Entity, 
 
 fn move_bob(time: Res<Time>, mut pos: Query<(&mut Transform, With<Bob>)>) {
     for (mut transform, _bob) in &mut pos {
-        transform.translation.y +=  (time.elapsed_seconds() * 30.0).sin() * 3.0;
+        transform.translation.y += (time.elapsed_seconds() * 30.0).sin() * 3.0;
     }
 }
 
