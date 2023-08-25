@@ -60,7 +60,7 @@ fn game_setup(
         },
         Playa,
         OnGameScreen));
-    
+
     for _i in 0..10 {
         commands.spawn((
             SpriteBundle {
@@ -90,14 +90,14 @@ fn check_if_done(
         game_state.set(GameState::Splash);
     }
 }
-    
+
 
 fn move_bounce(mut commands: Commands, time: Res<Time>, mut pos: Query<(Entity, &mut Transform, &mut Dir, &mut Sprite)>) {
     for (ent, mut transform, mut dir, mut spr) in &mut pos {
         transform.translation.x += dir.x * time.delta_seconds();
         transform.translation.y += dir.y * time.delta_seconds();
-        
-        if transform.translation.x > 650. || transform.translation.x < -650. {            
+
+        if transform.translation.x > 650. || transform.translation.x < -650. {
             dir.x = dir.x * -1.;
             spr.flip_x = !spr.flip_x;
             commands.entity(ent).insert(Bob);
@@ -144,6 +144,14 @@ fn check_for_collisions(
     let playa_size = playa.scale.truncate();
 
     for (entity, transform) in &peeps_query {
+        // Collision not workin', so dodgy distance check.
+        let dx = (playa.translation.x - transform.translation.x).abs();
+        let dy = (playa.translation.y - transform.translation.y).abs();
+        if dx < 20. && dy < 20. {
+            commands.entity(entity).despawn();
+        }
+
+        // Why not collision?
         let collision = collide(
             playa.translation,
             playa_size,
