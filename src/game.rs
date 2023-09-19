@@ -2,13 +2,10 @@ use bevy::{
     prelude::*,
     sprite::collide_aabb::{collide},
 };
-
 use rand::Rng;
-
 use crate::{ despawn_screen, GameState };
 
 pub struct GamePlugin;
-
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
         app
@@ -54,8 +51,10 @@ fn game_setup(
     commands.spawn((
         SpriteBundle {
             texture: asset_server.load("monsta.png"),
-            transform: Transform::from_xyz(0.,0., 0.)
-                .with_scale(Vec3::splat(0.25)),
+            sprite: Sprite {
+                custom_size: Some(Vec2::new(50.0, 50.0)),
+                ..default()
+            },
             ..default()
         },
         Playa,
@@ -68,8 +67,11 @@ fn game_setup(
                 transform: Transform::from_xyz(
                     (rng.gen::<f32>()) * 1000. - 500.,
                     (rng.gen::<f32>()) * 500. - 250.,
-                    0.)
-                    .with_scale(Vec3::splat(0.25)),
+                    0.),
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(50.0, 50.0)),
+                    ..default()
+                },                
                 ..default()
             },
             Dir {
@@ -137,32 +139,20 @@ fn move_with_keys(key_in: Res<Input<KeyCode>>,
 
 fn check_for_collisions(
     mut commands: Commands,
-    mut playa_query: Query<&Transform, With<Playa>>,
-    peeps_query: Query<(Entity, &Transform), With<Peep>>
+    mut playa_query: Query<(&Transform, &Sprite), With<Playa>>,
+    peeps_query: Query<(Entity, &Transform, &Sprite), With<Peep>>
 ) {
-    let playa = playa_query.single_mut();
-    let playa_size = playa.scale.truncate();
+    let (playa, plays) = playa_query.single_mut();
+    let playa_size = plays.custom_size.unwrap_or(Vec2::ONE);
 
-    for (entity, transform) in &peeps_query {
-        // Collision not workin', so dodgy distance check.
-        let dx = (playa.translation.x - transform.translation.x).abs();
-        let dy = (playa.translation.y - transform.translation.y).abs();
-        if dx < 20. && dy < 20. {
-            commands.entity(entity).despawn();
-        }
-
-        // Why not collision?
+    for (entity, transform, sprite) in &peeps_query {
         let collision = collide(
             playa.translation,
             playa_size,
             transform.translation,
-            transform.scale.truncate(),
+            sprite.custom_size.unwrap_or(Vec2::ONE)
         );
-        if collision.is_some() {
-            info!("{}", transform.translation.x);
-        }
         if let Some(_collision) = collision {
-            info!("Y");
             commands.entity(entity).despawn();
         }
     }
