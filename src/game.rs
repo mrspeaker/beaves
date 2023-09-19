@@ -86,13 +86,13 @@ fn game_setup(
 
 fn check_if_done(
     key_in: Res<Input<KeyCode>>,
-    mut game_state: ResMut<NextState<GameState>>
+    mut game_state: ResMut<NextState<GameState>>,
+    peeps_query: Query<Entity, With<Peep>>
 ) {
-    if key_in.pressed(KeyCode::Space) {
+    if peeps_query.is_empty() || key_in.pressed(KeyCode::Space) {
         game_state.set(GameState::Splash);
     }
 }
-
 
 fn move_bounce(mut commands: Commands, time: Res<Time>, mut pos: Query<(Entity, &mut Transform, &mut Dir, &mut Sprite)>) {
     for (ent, mut transform, mut dir, mut spr) in &mut pos {

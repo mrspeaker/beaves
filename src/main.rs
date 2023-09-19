@@ -10,11 +10,16 @@ pub enum GameState {
     InGame,
 }
 
+
+#[derive(Event, Default)]
+struct CollisionEvent;
+
 fn main() {
     App::new()
         .insert_resource(ClearColor(Color::rgb(0.9, 0.9, 0.9)))
         .add_state::<GameState>()
         .add_plugins(DefaultPlugins)
+        .add_event::<CollisionEvent>()
         .add_systems(Startup, setup)
         .add_plugins((splash::SplashPlugin, game::GamePlugin))
         .run();
