@@ -15,7 +15,8 @@ impl Plugin for GamePlugin {
                 move_bounce,
                 move_bob,
                 move_with_keys,
-                check_for_collisions
+                check_for_pickup_collisions,
+                check_for_wall_collisions
             ).run_if(in_state(GameState::InGame)))
             .add_systems(OnExit(GameState::InGame), despawn_screen::<OnGameScreen>);
     }
@@ -29,6 +30,12 @@ struct Playa;
 
 #[derive(Component)]
 struct Peep;
+
+#[derive(Component)]
+struct Wall;
+
+#[derive(Component)]
+struct IsDead;
 
 #[derive(Component)]
 struct Dir {
@@ -60,8 +67,8 @@ fn game_setup(
         Playa,
         OnGameScreen));
 
-    for _i in 0..10 {
-        commands.spawn((
+    for i in 0..20 {
+        let ent = commands.spawn((
             SpriteBundle {
                 texture: asset_server.load("char.png"),
                 transform: Transform::from_xyz(
@@ -74,11 +81,34 @@ fn game_setup(
                 },                
                 ..default()
             },
-            Dir {
+            Peep,
+            OnGameScreen
+        )).id();
+
+        if i > 7 {
+            commands.entity(ent).insert(Dir {
                 x: rng.gen::<f32>() * 400.0 - 200.0,
                 y: rng.gen::<f32>() * 400.0 - 200.0
+            });
+        }
+            
+    }
+
+    for _i in 0..100 {
+        commands.spawn((
+            SpriteBundle {            
+                texture: asset_server.load("wall.png"),
+                transform: Transform::from_xyz(
+                    (rng.gen::<f32>() * 11.).floor() * 100. - 500.,
+                    (rng.gen::<f32>() * 10.).floor() * 150. - 500.,
+                    0.),
+                sprite: Sprite {
+                    custom_size: Some(Vec2::new(100.0, 50.0)),
+                    ..default()
+                },                
+                ..default()
             },
-            Peep,
+            Wall,
             OnGameScreen
         ));
     }
@@ -87,9 +117,10 @@ fn game_setup(
 fn check_if_done(
     key_in: Res<Input<KeyCode>>,
     mut game_state: ResMut<NextState<GameState>>,
+    playa_query: Query<&IsDead, With<Playa>>,
     peeps_query: Query<Entity, With<Peep>>
 ) {
-    if peeps_query.is_empty() || key_in.pressed(KeyCode::Space) {
+    if peeps_query.is_empty() || !playa_query.is_empty() ||  key_in.pressed(KeyCode::Space) {
         game_state.set(GameState::Splash);
     }
 }
@@ -137,7 +168,7 @@ fn move_with_keys(key_in: Res<Input<KeyCode>>,
     }
 }
 
-fn check_for_collisions(
+fn check_for_pickup_collisions(
     mut commands: Commands,
     mut playa_query: Query<(&Transform, &Sprite), With<Playa>>,
     peeps_query: Query<(Entity, &Transform, &Sprite), With<Peep>>
@@ -154,6 +185,27 @@ fn check_for_collisions(
         );
         if let Some(_collision) = collision {
             commands.entity(entity).despawn();
+        }
+    }
+}
+
+fn check_for_wall_collisions(
+    mut commands: Commands,
+    mut playa_query: Query<(Entity, &Transform, &Sprite), With<Playa>>,
+    wall_query: Query<(&Transform, &Sprite), With<Wall>>
+) {
+    let (entity, playa, plays) = playa_query.single_mut();
+    let playa_size = plays.custom_size.unwrap_or(Vec2::ONE);
+
+    for (transform, sprite) in &wall_query {
+        let collision = collide(
+            playa.translation,
+            playa_size,
+            transform.translation,
+            sprite.custom_size.unwrap_or(Vec2::ONE)
+        );
+        if let Some(_collision) = collision {
+            commands.entity(entity).insert(IsDead);
         }
     }
 }
