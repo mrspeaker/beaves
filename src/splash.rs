@@ -28,6 +28,20 @@ fn splash_setup(
     let window: &Window = window_query.get_single().unwrap();
 
     commands.insert_resource(SplashTimer(Timer::from_seconds(2.0, TimerMode::Once)));
+
+    commands.spawn((
+        SpriteBundle {
+            texture: asset_server.load("bg.png"),
+            transform: Transform::from_xyz(
+                window.width() / 2.0,
+                window.height() / 2.0 + 50.,
+                0.0
+            ).with_scale(Vec3::new(1.8, 1.62, 0.0)),
+            ..default()
+        },
+        OnSplashScreen
+    ));
+    
     commands.spawn((
         SpriteBundle {
             texture: asset_server.load("monsta.png"),

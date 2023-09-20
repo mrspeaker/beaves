@@ -6,6 +6,9 @@ use bevy::{
 use rand::Rng;
 use crate::{ despawn_screen, GameState };
 
+pub const PLAYA_SPEED:f32 = 250.0;
+pub const NUM_CHARS:usize = 50;
+
 pub struct GamePlugin;
 impl Plugin for GamePlugin {
     fn build(&self, app: &mut App) {
@@ -17,7 +20,8 @@ impl Plugin for GamePlugin {
                 move_bob,
                 move_with_keys,
                 check_for_pickup_collisions,
-                check_for_wall_collisions
+                check_for_wall_collisions,
+                confine_to_window
             ).run_if(in_state(GameState::InGame)))
             .add_systems(OnExit(GameState::InGame), despawn_screen::<OnGameScreen>);
     }
@@ -56,8 +60,10 @@ fn game_setup(
     asset_server: Res<AssetServer>       
 ) {
     let mut rng = rand::thread_rng();
-    let window: &Window = window_query.get_single().unwrap();    
 
+    let window: &Window = window_query.get_single().unwrap();
+    
+    // Make the player
     commands.spawn((
         SpriteBundle {
             texture: asset_server.load("monsta.png"),
@@ -75,7 +81,22 @@ fn game_setup(
         Playa,
         OnGameScreen));
 
-    for i in 0..20 {
+    commands.spawn((
+        SpriteBundle {
+            texture: asset_server.load("bg.png"),
+            transform: Transform::from_xyz(
+                window.width() / 2.0,
+                window.height() / 2.0 + 50.,
+                0.0
+            ).with_scale(Vec3::new(1.8, 1.62, 0.0)),
+            ..default()
+        },
+        OnGameScreen
+    ));
+
+
+    // Make the baddies
+    for i in 0..NUM_CHARS {
         let ent = commands.spawn((
             SpriteBundle {
                 texture: asset_server.load("char.png"),
@@ -93,10 +114,16 @@ fn game_setup(
             OnGameScreen
         )).id();
 
+        // Make some move around (with Dir component)
         if i > 7 {
+            let speed = rng.gen_range(50.0..150.0);
+            let dir = Vec2 {
+                x: rng.gen_range(-1.0..1.0),
+                y: rng.gen_range(-1.0..1.0)
+            }.normalize() * speed;
             commands.entity(ent).insert(Dir {
-                x: rng.gen::<f32>() * 400.0 - 200.0,
-                y: rng.gen::<f32>() * 400.0 - 200.0
+                x: dir.x,
+                y: dir.y
             });
         }
             
@@ -163,26 +190,33 @@ fn move_bounce(
 
 fn move_bob(time: Res<Time>, mut pos: Query<(&mut Transform, With<Bob>)>) {
     for (mut transform, _bob) in &mut pos {
-        transform.translation.y += (time.elapsed_seconds() * 30.0).sin() * 3.0;
+        transform.translation.y += (time.elapsed_seconds() * 20.0).sin() * 1.5;
     }
 }
 
-fn move_with_keys(key_in: Res<Input<KeyCode>>,
-            time: Res<Time>,
-            mut query: Query<&mut Transform, With<Playa>>) {
+fn move_with_keys(
+    key_in: Res<Input<KeyCode>>,
+    time: Res<Time>,
+    mut query: Query<&mut Transform, With<Playa>>
+) {
+    let mut dir = Vec3::ZERO;
     let mut transform = query.single_mut();
-    let speed = 300.0;
+
     if key_in.pressed(KeyCode::Right) {
-        transform.translation.x += speed * time.delta_seconds();
+        dir.x += 1.0;
     }
     if key_in.pressed(KeyCode::Left) {
-        transform.translation.x -= speed * time.delta_seconds();
+        dir.x -= 1.0;
     }
     if key_in.pressed(KeyCode::Up) {
-        transform.translation.y += speed * time.delta_seconds();
+        dir.y += 1.0;
     }
     if key_in.pressed(KeyCode::Down) {
-        transform.translation.y -= speed * time.delta_seconds();
+        dir.y -= 1.0;
+    }
+    if dir.length() > 0.0 {
+        dir = dir.normalize();
+        transform.translation += dir * PLAYA_SPEED * time.delta_seconds();
     }
 }
 
@@ -226,4 +260,24 @@ fn check_for_wall_collisions(
             commands.entity(entity).insert(IsDead);
         }
     }
+}
+
+fn confine_to_window(
+    mut playa_query: Query<(&Sprite, &mut Transform), With<Playa>>,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+){
+    let (sprite, mut transform) = playa_query.single_mut() ;
+    let window: &Window = window_query.get_single().unwrap();
+    let hw = sprite.custom_size.unwrap_or(Vec2::ONE).x / 2.0;
+    let hh = sprite.custom_size.unwrap_or(Vec2::ONE).y / 2.0;
+    let x1 = hw;
+    let x2 = window.width() - hw;
+    let y1 = hh;
+    let y2 = window.height() - hh;
+    let mut t: Vec3 = transform.translation;
+    if t.x < x1 { t.x = x1 }
+    if t.x > x2 { t.x = x2 }
+    if t.y < y1 { t.y = y1 }
+    if t.y > y2 { t.y = y2 }
+    transform.translation = t;
 }
