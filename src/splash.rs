@@ -1,4 +1,5 @@
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
 use crate::{despawn_screen, GameState};
 
@@ -19,12 +20,18 @@ struct OnSplashScreen;
 #[derive(Resource, Deref, DerefMut)]
 struct SplashTimer(Timer);
 
-fn splash_setup(mut commands: Commands, asset_server: Res<AssetServer>) {
+fn splash_setup(
+    mut commands: Commands,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+    asset_server: Res<AssetServer>
+){
+    let window: &Window = window_query.get_single().unwrap();
+
     commands.insert_resource(SplashTimer(Timer::from_seconds(2.0, TimerMode::Once)));
     commands.spawn((
         SpriteBundle {
             texture: asset_server.load("monsta.png"),
-            transform: Transform::from_xyz(0., 0., 0.)
+            transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0)
                 .with_scale(Vec3::splat(0.5)),
             ..default()
         },

@@ -1,6 +1,7 @@
 use bevy::{
     prelude::*,
     sprite::collide_aabb::{collide},
+    window::PrimaryWindow
 };
 use rand::Rng;
 use crate::{ despawn_screen, GameState };
@@ -51,13 +52,20 @@ struct GameTimer(Timer);
 
 fn game_setup(
     mut commands: Commands,
-    asset_server: Res<AssetServer>
+    window_query: Query<&Window, With<PrimaryWindow>>,    
+    asset_server: Res<AssetServer>       
 ) {
     let mut rng = rand::thread_rng();
+    let window: &Window = window_query.get_single().unwrap();    
 
     commands.spawn((
         SpriteBundle {
             texture: asset_server.load("monsta.png"),
+            transform: Transform::from_xyz(
+                window.width() / 2.0,
+                window.height() / 2.0 + 50.,
+                0.0
+            ),
             sprite: Sprite {
                 custom_size: Some(Vec2::new(50.0, 50.0)),
                 ..default()
@@ -72,8 +80,8 @@ fn game_setup(
             SpriteBundle {
                 texture: asset_server.load("char.png"),
                 transform: Transform::from_xyz(
-                    (rng.gen::<f32>()) * 1000. - 500.,
-                    (rng.gen::<f32>()) * 500. - 250.,
+                    (rng.gen::<f32>()) * window.width(),
+                    (rng.gen::<f32>()) * window.height(),
                     0.),
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(50.0, 50.0)),
@@ -94,14 +102,16 @@ fn game_setup(
             
     }
 
+    let xo = (window.width() / 100.0).trunc() + 1.;
+    let yo = (window.height() / 150.0).trunc() + 1.;
     for _i in 0..100 {
         commands.spawn((
             SpriteBundle {            
                 texture: asset_server.load("wall.png"),
                 transform: Transform::from_xyz(
-                    (rng.gen::<f32>() * 11.).floor() * 100. - 500.,
-                    (rng.gen::<f32>() * 10.).floor() * 150. - 500.,
-                    0.),
+                    (rng.gen::<f32>() * xo).floor() * 100.0 + 50.0,
+                    (rng.gen::<f32>() * yo).floor() * 150.0 + 25.0,
+                    0.1),
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(100.0, 50.0)),
                     ..default()
@@ -125,18 +135,26 @@ fn check_if_done(
     }
 }
 
-fn move_bounce(mut commands: Commands, time: Res<Time>, mut pos: Query<(Entity, &mut Transform, &mut Dir, &mut Sprite)>) {
+fn move_bounce(
+    mut commands: Commands,
+    window_query: Query<&Window, With<PrimaryWindow>>,
+    time: Res<Time>,
+    mut pos: Query<(Entity, &mut Transform, &mut Dir, &mut Sprite)>
+) {
+    let window: &Window = window_query.get_single().unwrap();
+    
     for (ent, mut transform, mut dir, mut spr) in &mut pos {
         transform.translation.x += dir.x * time.delta_seconds();
         transform.translation.y += dir.y * time.delta_seconds();
 
-        if transform.translation.x > 650. || transform.translation.x < -650. {
+        if transform.translation.x < 0.0 || transform.translation.x > window.width() {
+            transform.translation.x = if transform.translation.x < 0.0 { 0.0 } else { window.width() };
             dir.x = dir.x * -1.;
             spr.flip_x = !spr.flip_x;
             commands.entity(ent).insert(Bob);
         }
-        if transform.translation.y < -350. || transform.translation.y > 350. {
-            dir.y = dir.y * -1.;
+        if transform.translation.y < 0.0 || transform.translation.y > window.height() {
+            dir.y = dir.y * -1.0;
             spr.flip_y = !spr.flip_y;
         }
 

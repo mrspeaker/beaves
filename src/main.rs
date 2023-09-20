@@ -2,6 +2,7 @@ mod splash;
 mod game;
 
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
 #[derive(Debug, Default, Clone, Copy, Eq, PartialEq, Hash, States)]
 pub enum GameState {
@@ -25,8 +26,14 @@ fn main() {
         .run();
 }
 
-fn setup(mut commands: Commands) {
-    commands.spawn(Camera2dBundle::default());
+fn setup(mut commands: Commands,
+    window_query: Query<&Window, With<PrimaryWindow>>
+) {
+    let window: &Window = window_query.get_single().unwrap();
+    commands.spawn(Camera2dBundle {
+        transform:Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0),
+        ..default()
+    });
 }
 
 fn despawn_screen<T: Component>(to_despawn: Query<Entity, With<T>>, mut commands: Commands) {
