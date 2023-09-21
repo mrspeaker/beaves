@@ -45,7 +45,7 @@ fn splash_setup(
     commands.spawn((
         SpriteBundle {
             texture: asset_server.load("monsta.png"),
-            transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 0.0)
+            transform: Transform::from_xyz(window.width() / 2.0, window.height() / 2.0, 1.0)
                 .with_scale(Vec3::splat(0.5)),
             ..default()
         },

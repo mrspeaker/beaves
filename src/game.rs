@@ -70,7 +70,7 @@ fn game_setup(
             transform: Transform::from_xyz(
                 window.width() / 2.0,
                 window.height() / 2.0 + 50.,
-                0.0
+                1.0
             ),
             sprite: Sprite {
                 custom_size: Some(Vec2::new(50.0, 50.0)),
@@ -103,7 +103,7 @@ fn game_setup(
                 transform: Transform::from_xyz(
                     (rng.gen::<f32>()) * window.width(),
                     (rng.gen::<f32>()) * window.height(),
-                    0.),
+                    1.),
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(50.0, 50.0)),
                     ..default()
