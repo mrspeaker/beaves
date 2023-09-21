@@ -7,7 +7,7 @@ use rand::Rng;
 use crate::{ despawn_screen, GameState };
 
 pub const PLAYA_SPEED:f32 = 250.0;
-pub const NUM_CHARS:usize = 50;
+pub const NUM_CHARS:usize = 10000;
 
 pub struct GamePlugin;
 impl Plugin for GamePlugin {
@@ -138,7 +138,7 @@ fn game_setup(
                 transform: Transform::from_xyz(
                     (rng.gen::<f32>() * xo).floor() * 100.0 + 50.0,
                     (rng.gen::<f32>() * yo).floor() * 150.0 + 25.0,
-                    0.1),
+                    1.1),
                 sprite: Sprite {
                     custom_size: Some(Vec2::new(100.0, 50.0)),
                     ..default()
